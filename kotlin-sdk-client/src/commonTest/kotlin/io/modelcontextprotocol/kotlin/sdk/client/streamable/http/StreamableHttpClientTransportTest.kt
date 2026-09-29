@@ -254,6 +254,7 @@ class StreamableHttpClientTransportTest {
             respond(content = "", status = HttpStatusCode.Accepted)
         }
 
+        transport.protocolVersion = "2026-07-28"
         transport.start()
         transport.send(
             JSONRPCRequest(
@@ -276,6 +277,7 @@ class StreamableHttpClientTransportTest {
             respond(content = "", status = HttpStatusCode.Accepted)
         }
 
+        transport.protocolVersion = "2026-07-28"
         transport.start()
         transport.send(
             JSONRPCRequest(
@@ -302,6 +304,7 @@ class StreamableHttpClientTransportTest {
                 respond(content = "", status = HttpStatusCode.Accepted)
             }
 
+            transport.protocolVersion = "2026-07-28"
             transport.start()
             transport.send(
                 JSONRPCRequest(
@@ -322,9 +325,35 @@ class StreamableHttpClientTransportTest {
             respond(content = "", status = HttpStatusCode.Accepted)
         }
 
+        transport.protocolVersion = "2026-07-28"
         transport.start()
         transport.send(JSONRPCNotification(method = "notifications/tools/list_changed"))
         transport.close()
+    }
+
+    @Test
+    fun `should omit MCP standard headers for handshake-based protocol versions`() = runTest {
+        val versions = listOf(null, "2025-11-25")
+
+        versions.forEach { version ->
+            val transport = createTransport { request ->
+                assertNull(request.headers["Mcp-Method"])
+                assertNull(request.headers["Mcp-Name"])
+                respond(content = "", status = HttpStatusCode.Accepted)
+            }
+            transport.protocolVersion = version
+
+            transport.start()
+            transport.send(
+                JSONRPCRequest(
+                    id = "test-id",
+                    method = "tools/call",
+                    params = buildJsonObject { put("name", JsonPrimitive("read_file")) },
+                ),
+            )
+            transport.send(JSONRPCNotification(method = "notifications/roots/list_changed"))
+            transport.close()
+        }
     }
 
     @Test
@@ -335,6 +364,7 @@ class StreamableHttpClientTransportTest {
             respond(content = "", status = HttpStatusCode.Accepted)
         }
 
+        transport.protocolVersion = "2026-07-28"
         transport.start()
         transport.send(JSONRPCResponse(id = RequestId.StringId("test-id")))
         transport.close()

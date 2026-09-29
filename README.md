@@ -22,6 +22,7 @@ standardized protocol interface.
   * [Artifacts](#artifacts)
   * [Gradle setup (JVM)](#gradle-setup-jvm)
   * [Multiplatform](#multiplatform)
+  * [JitPack (this fork)](#jitpack-this-fork)
   * [Ktor dependencies](#ktor-dependencies)
 * [Quickstart](#quickstart)
   * [Creating a Client](#creating-a-client)
@@ -111,6 +112,37 @@ commonMain {
     }
 }
 ```
+
+### JitPack (this fork)
+
+This fork ([rikkahub/mcp-kotlin-sdk](https://github.com/rikkahub/mcp-kotlin-sdk)) is published via
+[JitPack](https://jitpack.io/#rikkahub/mcp-kotlin-sdk) under the `com.github.rikkahub.mcp-kotlin-sdk` group.
+Add the JitPack repository:
+
+```kotlin
+// settings.gradle.kts
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        maven("https://jitpack.io")
+    }
+}
+```
+
+Then depend on the modules you need, using a tag (e.g. `0.15.0-rikka.1`), a commit hash, or `main-SNAPSHOT` as the version:
+
+```kotlin
+dependencies {
+    implementation("com.github.rikkahub.mcp-kotlin-sdk:kotlin-sdk:$mcpVersion")
+    // or only one side of the API
+    implementation("com.github.rikkahub.mcp-kotlin-sdk:kotlin-sdk-client:$mcpVersion")
+    implementation("com.github.rikkahub.mcp-kotlin-sdk:kotlin-sdk-server:$mcpVersion")
+}
+```
+
+> [!NOTE]
+> JitPack builds only publish **JVM** artifacts (usable from JVM and Android projects).
+> For JS, Wasm, or Native targets, use the upstream artifacts from Maven Central.
 
 ### Ktor dependencies
 

@@ -218,7 +218,9 @@ public class StreamableHttpClientTransport(
         val jsonBody = McpJson.encodeToString(message)
         val response = client.post(url) {
             applyCommonHeaders(this)
-            applyStandardPostHeaders(this, message)
+            // Mcp-Method and Mcp-Name are defined from 2026-07-28 on; some handshake-era servers
+            // reject requests that carry them.
+            if (usesRequestScopedProtocol) applyStandardPostHeaders(this, message)
             headers.append(HttpHeaders.Accept, "${ContentType.Application.Json}, ${ContentType.Text.EventStream}")
             contentType(ContentType.Application.Json)
             setBody(jsonBody)
