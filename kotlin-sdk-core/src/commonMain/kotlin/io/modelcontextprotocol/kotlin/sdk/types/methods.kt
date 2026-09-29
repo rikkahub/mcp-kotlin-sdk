@@ -36,6 +36,8 @@ public sealed interface Method {
         NotificationsPromptsListChanged("notifications/prompts/list_changed"),
         NotificationsElicitationComplete("notifications/elicitation/complete"),
         NotificationsTasksStatus("notifications/tasks/status"),
+        NotificationsSubscriptionsAcknowledged("notifications/subscriptions/acknowledged"),
+        SubscriptionsListen("subscriptions/listen"),
         ToolsList("tools/list"),
         ToolsCall("tools/call"),
         LoggingSetLevel("logging/setLevel"),

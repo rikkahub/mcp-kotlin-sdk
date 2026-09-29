@@ -1,5 +1,6 @@
 package io.modelcontextprotocol.kotlin.sdk.types
 
+import io.modelcontextprotocol.kotlin.sdk.ExperimentalMcpApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
@@ -8,19 +9,37 @@ import kotlinx.serialization.json.JsonObject
 // Protocol Version Constants
 // ============================================================================
 
-/** The latest supported MCP protocol version string. */
+/**
+ * The latest MCP protocol version negotiated through the `initialize` handshake.
+ *
+ * Request-scoped protocol versions, which replace the handshake with per-request metadata, are listed
+ * separately in [MODERN_PROTOCOL_VERSIONS].
+ */
 public const val LATEST_PROTOCOL_VERSION: String = "2025-11-25"
 
 /** The default protocol version used when negotiation is not performed. */
 public const val DEFAULT_NEGOTIATED_PROTOCOL_VERSION: String = "2025-03-26"
 
-/** All MCP protocol versions supported by this SDK. */
+/** All handshake-based (`initialize`) MCP protocol versions supported by this SDK. */
 public val SUPPORTED_PROTOCOL_VERSIONS: List<String> = listOf(
     LATEST_PROTOCOL_VERSION,
     "2025-06-18",
     "2025-03-26",
     "2024-11-05",
 )
+
+/**
+ * The latest request-scoped MCP protocol version.
+ *
+ * Starting with this version there is no `initialize` handshake: every request declares its protocol
+ * version, client capabilities, and client information in `_meta`.
+ */
+@ExperimentalMcpApi
+public const val LATEST_MODERN_PROTOCOL_VERSION: String = "2026-07-28"
+
+/** All request-scoped MCP protocol versions supported by this SDK, most preferred first. */
+@ExperimentalMcpApi
+public val MODERN_PROTOCOL_VERSIONS: List<String> = listOf(LATEST_MODERN_PROTOCOL_VERSION)
 
 // ============================================================================
 // Base Interfaces

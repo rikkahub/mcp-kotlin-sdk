@@ -5,9 +5,11 @@ import io.modelcontextprotocol.kotlin.sdk.shared.TransportSendOptions
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.InitializeResult
+import io.modelcontextprotocol.kotlin.sdk.types.JSONRPCError
 import io.modelcontextprotocol.kotlin.sdk.types.JSONRPCMessage
 import io.modelcontextprotocol.kotlin.sdk.types.JSONRPCRequest
 import io.modelcontextprotocol.kotlin.sdk.types.JSONRPCResponse
+import io.modelcontextprotocol.kotlin.sdk.types.RPCError
 import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -35,6 +37,14 @@ class MockTransport : Transport {
         when (message) {
             is JSONRPCRequest -> {
                 when (message.method) {
+                    // Like most handshake-based servers, reject the request-scoped discovery probe.
+                    "server/discover" -> onMessageBlock?.invoke(
+                        JSONRPCError(
+                            id = message.id,
+                            error = RPCError(code = RPCError.ErrorCode.METHOD_NOT_FOUND, message = "Method not found"),
+                        ),
+                    )
+
                     "initialize" -> {
                         val initResponse = JSONRPCResponse(
                             id = message.id,
