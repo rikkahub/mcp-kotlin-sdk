@@ -1,0 +1,18 @@
+jdk:
+  - openjdk21
+
+install:
+  - >-
+    ./gradlew --no-daemon --stacktrace
+    -Pgroup=com.github.rikkahub.mcp-kotlin-sdk
+    -Pversion=$VERSION
+    :kotlin-sdk-core:publishKotlinMultiplatformPublicationToMavenLocal
+    :kotlin-sdk-core:publishJvmPublicationToMavenLocal
+    :kotlin-sdk-client:publishKotlinMultiplatformPublicationToMavenLocal
+    :kotlin-sdk-client:publishJvmPublicationToMavenLocal
+    :kotlin-sdk-server:publishKotlinMultiplatformPublicationToMavenLocal
+    :kotlin-sdk-server:publishJvmPublicationToMavenLocal
+    :kotlin-sdk-testing:publishKotlinMultiplatformPublicationToMavenLocal
+    :kotlin-sdk-testing:publishJvmPublicationToMavenLocal
+    :kotlin-sdk:publishKotlinMultiplatformPublicationToMavenLocal
+    :kotlin-sdk:publishJvmPublicationToMavenLocal
