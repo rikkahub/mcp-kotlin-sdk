@@ -269,6 +269,12 @@ public data class RPCError(val code: Int, val message: String, val data: JsonEle
         /** Resource not found */
         public const val RESOURCE_NOT_FOUND: Int = -32002
 
+        /** Streamable HTTP headers are missing, malformed, or do not match the request body. */
+        public const val HEADER_MISMATCH: Int = -32020
+
+        /** Processing the request requires a client capability the request did not declare. */
+        public const val MISSING_REQUIRED_CLIENT_CAPABILITY: Int = -32021
+
         /** The request selected a protocol version that the receiver does not support. */
         public const val UNSUPPORTED_PROTOCOL_VERSION: Int = -32022
 

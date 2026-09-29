@@ -546,6 +546,7 @@ public abstract class Protocol(@PublishedApi internal val options: ProtocolOptio
         val requestId = notification.params.requestId
         val job = connection.inFlightRequestJobs.value[requestId]
         if (job == null) {
+            if (onPeerCancelledRequest(requestId)) return
             logger.trace { "Ignoring cancellation for unknown or already-completed request: $requestId" }
             return
         }
@@ -772,17 +773,30 @@ public abstract class Protocol(@PublishedApi internal val options: ProtocolOptio
      *
      * Do not use this method to emit notifications! Use notification() instead.
      */
-    public suspend fun <T : RequestResult> request(request: Request, options: RequestOptions? = null): T {
-        logger.trace { "Sending request: ${request.method}" }
+    public suspend fun <T : RequestResult> request(request: Request, options: RequestOptions? = null): T =
+        sendRequestMessage(request.toJSON(), options)
+
+    /**
+     * Sends an already-encoded JSON-RPC request and waits for its response.
+     *
+     * Behaves like [request], but lets subclasses control the wire message directly — for example to
+     * choose the request [JSONRPCRequest.id] up front or to add parameters that have no typed
+     * counterpart. The message still passes through [prepareOutgoingRequest] before it is sent.
+     */
+    protected suspend fun <T : RequestResult> sendRequestMessage(
+        message: JSONRPCRequest,
+        options: RequestOptions? = null,
+    ): T {
+        logger.trace { "Sending request: ${message.method}" }
         val result = CompletableDeferred<T>()
         val connection = connectionRef.value ?: error("Not connected")
         val transport = connection.transport
 
         if (this@Protocol.options?.enforceStrictCapabilities == true) {
-            assertCapabilityForMethod(request.method)
+            assertCapabilityForMethod(Method.from(message.method))
         }
 
-        val jsonRpcRequest = request.toJSON().run {
+        val jsonRpcRequest = message.run {
             options?.onProgress?.let { progressHandler ->
                 logger.trace { "Registering progress handler for request id: $id" }
                 _progressHandlers.update { current ->
@@ -790,7 +804,7 @@ public abstract class Protocol(@PublishedApi internal val options: ProtocolOptio
                 }
 
                 val paramsObject = (this.params as? JsonObject) ?: JsonObject(emptyMap())
-                val metaObject = request.params?.meta?.json ?: JsonObject(emptyMap())
+                val metaObject = paramsObject["_meta"] as? JsonObject ?: JsonObject(emptyMap())
 
                 val updatedMeta = JsonObject(
                     metaObject + ("progressToken" to McpJson.encodeToJsonElement(id)),
@@ -801,7 +815,7 @@ public abstract class Protocol(@PublishedApi internal val options: ProtocolOptio
 
                 this.copy(params = updatedParams)
             } ?: this
-        }
+        }.let(::prepareOutgoingRequest)
         val jsonRpcRequestId = jsonRpcRequest.id
 
         _responseHandlers.update { current ->
@@ -849,7 +863,7 @@ public abstract class Protocol(@PublishedApi internal val options: ProtocolOptio
 
         // The MCP spec forbids cancelling `initialize`; local cleanup still runs,
         // but no notifications/cancelled goes on the wire (timeout and cancel paths alike).
-        val notifyPeerOnCancel = request.method != Method.Defined.Initialize
+        val notifyPeerOnCancel = message.method != Method.Defined.Initialize.value
 
         val timeout = options?.timeout ?: DEFAULT_REQUEST_TIMEOUT
         try {
@@ -861,7 +875,7 @@ public abstract class Protocol(@PublishedApi internal val options: ProtocolOptio
             if (response == null) {
                 // Our own request timeout expired. An outer withTimeout's cancellation propagates
                 // through withTimeoutOrNull instead of returning null and is handled by the catch below.
-                logger.error { "Request timed out after ${timeout.inWholeMilliseconds}ms: ${request.method}" }
+                logger.error { "Request timed out after ${timeout.inWholeMilliseconds}ms: ${message.method}" }
                 val timeoutError = McpException(
                     code = RPCError.ErrorCode.REQUEST_TIMEOUT,
                     message = "Request timed out",
@@ -972,6 +986,47 @@ public abstract class Protocol(@PublishedApi internal val options: ProtocolOptio
         method: Method,
         block: suspend (T, RequestHandlerExtra) -> RequestResult?,
     ): suspend (T, RequestHandlerExtra) -> RequestResult? = block
+
+    /**
+     * Subclass hook to amend every outgoing request right before it is sent, for example to attach
+     * request-scoped `_meta`. Called once per request, after the progress token has been added.
+     * The default implementation returns [request] unchanged.
+     */
+    protected open fun prepareOutgoingRequest(request: JSONRPCRequest): JSONRPCRequest = request
+
+    /**
+     * Subclass hook invoked when the peer sends `notifications/cancelled` for [requestId] and no inbound
+     * request with that ID is running — for example, a server ending one of this side's long-lived
+     * `subscriptions/listen` requests over stdio. Runs on the notification dispatch path, so it must not
+     * block.
+     *
+     * @return `true` if the cancellation was handled; the default implementation returns `false`
+     */
+    protected open fun onPeerCancelledRequest(requestId: RequestId): Boolean = false
+
+    /**
+     * Runs the handler registered for [request]'s method in-process and returns its result, without
+     * sending anything to the peer.
+     *
+     * Used to fulfil requests the peer embeds in a response rather than sending on the wire, such as
+     * the input requests of a multi round-trip request.
+     *
+     * @throws McpException with [RPCError.ErrorCode.METHOD_NOT_FOUND] if no handler is registered for
+     * the method, or [RPCError.ErrorCode.CONNECTION_CLOSED] if this protocol is not connected
+     */
+    protected suspend fun handleRequestLocally(request: JSONRPCRequest): RequestResult {
+        val connection = connectionRef.value
+            ?: throw McpException(RPCError.ErrorCode.CONNECTION_CLOSED, "Connection closed")
+        val handler = requestHandlers[request.method] ?: fallbackRequestHandler
+            ?: throw McpException(RPCError.ErrorCode.METHOD_NOT_FOUND, "No handler registered for ${request.method}")
+        val extra = RequestHandlerExtra(
+            requestId = request.id,
+            method = Method.from(request.method),
+            protocol = this,
+            capturedTransport = connection.transport,
+        )
+        return withContext(extra) { handler(request, extra) } ?: EmptyResult()
+    }
 
     /**
      * Removes the request handler for the given method.

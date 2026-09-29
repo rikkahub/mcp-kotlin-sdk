@@ -23,15 +23,24 @@ import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.utils.io.charsets.TooLongLineException
 import io.ktor.utils.io.readUTF8Line
+import io.modelcontextprotocol.kotlin.sdk.ExperimentalMcpApi
 import io.modelcontextprotocol.kotlin.sdk.shared.AbstractClientTransport
 import io.modelcontextprotocol.kotlin.sdk.shared.TooLongFrameException
 import io.modelcontextprotocol.kotlin.sdk.shared.TransportSendOptions
+import io.modelcontextprotocol.kotlin.sdk.types.JSONRPCError
 import io.modelcontextprotocol.kotlin.sdk.types.JSONRPCMessage
 import io.modelcontextprotocol.kotlin.sdk.types.JSONRPCNotification
 import io.modelcontextprotocol.kotlin.sdk.types.JSONRPCRequest
 import io.modelcontextprotocol.kotlin.sdk.types.JSONRPCResponse
+import io.modelcontextprotocol.kotlin.sdk.types.MODERN_PROTOCOL_VERSIONS
 import io.modelcontextprotocol.kotlin.sdk.types.McpJson
+import io.modelcontextprotocol.kotlin.sdk.types.Method
+import io.modelcontextprotocol.kotlin.sdk.types.RPCError
 import io.modelcontextprotocol.kotlin.sdk.types.RequestId
+import io.modelcontextprotocol.kotlin.sdk.types.Tool
+import kotlinx.atomicfu.atomic
+import kotlinx.atomicfu.update
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -45,8 +54,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.math.pow
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -57,8 +64,16 @@ private const val MCP_PROTOCOL_VERSION_HEADER = "mcp-protocol-version"
 private const val MCP_RESUMPTION_TOKEN_HEADER = "Last-Event-ID"
 private const val MCP_METHOD_HEADER = "Mcp-Method"
 private const val MCP_NAME_HEADER = "Mcp-Name"
-private const val MCP_BASE64_PREFIX = "=?base64?"
-private const val MCP_BASE64_SUFFIX = "?="
+
+private val CANCELLED_METHOD = Method.Defined.NotificationsCancelled.value
+private val TOOLS_CALL_METHOD = Method.Defined.ToolsCall.value
+
+/** Modern-protocol error codes a server may return without echoing the request ID. */
+private val requestScopedErrorCodes = setOf(
+    RPCError.ErrorCode.HEADER_MISMATCH,
+    RPCError.ErrorCode.MISSING_REQUIRED_CLIENT_CAPABILITY,
+    RPCError.ErrorCode.UNSUPPORTED_PROTOCOL_VERSION,
+)
 
 /**
  * Default maximum size, in characters, of a single inline SSE event assembled from a POST response.
@@ -89,6 +104,12 @@ private sealed interface ConnectResult {
  * Sends messages via HTTP POST and receives messages via HTTP GET with Server-Sent Events.
  * Supports automatic SSE reconnection with exponential backoff, stream resumption via the
  * `Last-Event-ID` header, and explicit session termination.
+ *
+ * Requests of request-scoped protocol versions (`2026-07-28` and later, which carry their version in
+ * `_meta`) follow that revision instead: no session, GET stream, or resumption; the protocol version
+ * header is taken from the request itself, `tools/call` arguments annotated with `x-mcp-header` are
+ * mirrored into `Mcp-Param-*` headers, and a JSON-RPC error body of a rejected request is delivered
+ * as that request's response.
  *
  * @param client Ktor HTTP client used for all requests
  * @param url MCP endpoint URL
@@ -140,6 +161,14 @@ public class StreamableHttpClientTransport(
     /** MCP protocol version negotiated with the server, or `null` before connection. */
     public var protocolVersion: String? = null
 
+    /** `Mcp-Param-*` headers of each known tool, keyed by tool name. */
+    private val toolParamHeaders = atomic(persistentMapOf<String, List<ToolParamHeader>>())
+
+    /** Whether the negotiated protocol version is request-scoped (2026-07-28 and later). */
+    @OptIn(ExperimentalMcpApi::class)
+    private val usesRequestScopedProtocol: Boolean
+        get() = protocolVersion in MODERN_PROTOCOL_VERSIONS
+
     private var sseJob: Job? = null
 
     private val scope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
@@ -161,6 +190,20 @@ public class StreamableHttpClientTransport(
      */
     override suspend fun performSend(message: JSONRPCMessage, options: TransportSendOptions?) {
         logger.debug { "Client sending message via POST to $url: ${McpJson.encodeToString(message)}" }
+
+        if (message is JSONRPCNotification && message.method == CANCELLED_METHOD && usesRequestScopedProtocol) {
+            // Request-scoped Streamable HTTP defines no client notifications: closing a request's
+            // response stream is its cancellation, which happened when the request was cancelled.
+            logger.debug { "Not sending notifications/cancelled: the response stream closure cancels the request" }
+            return
+        }
+
+        if (message is JSONRPCRequest) {
+            message.requestScopedProtocolVersion()?.let { version ->
+                sendRequestScoped(message, version)
+                return
+            }
+        }
 
         // If we have a resumption token, reconnect the SSE stream with it
         options?.resumptionToken?.let { token ->
@@ -229,6 +272,109 @@ public class StreamableHttpClientTransport(
                 _onError(error)
                 throw error
             }
+        }
+    }
+
+    /**
+     * Sends a request of a request-scoped protocol version (2026-07-28 and later).
+     *
+     * Unlike earlier versions there is no session, no standalone GET stream, and no stream resumption:
+     * a response stream that closes before the response arrives loses the request.
+     */
+    private suspend fun sendRequestScoped(message: JSONRPCRequest, version: String) {
+        val response = client.post(url) {
+            headers.append(MCP_PROTOCOL_VERSION_HEADER, version)
+            applyStandardPostHeaders(this, message)
+            applyParamHeaders(this, message)
+            headers.append(HttpHeaders.Accept, "${ContentType.Application.Json}, ${ContentType.Text.EventStream}")
+            contentType(ContentType.Application.Json)
+            setBody(McpJson.encodeToString(message))
+            requestBuilder()
+        }
+
+        if (!response.status.isSuccess()) {
+            val body = response.bodyAsText()
+            // Modern servers reject requests with a JSON-RPC error body (e.g. 400 for an unsupported
+            // protocol version, 404 for an unknown method): surface it as the request's response.
+            body.decodeErrorFor(message.id)?.let {
+                _onMessage(it)
+                return
+            }
+            val error = StreamableHttpError(response.status.value, body)
+            _onError(error)
+            throw error
+        }
+
+        when (response.contentType()?.withoutParameters()) {
+            ContentType.Application.Json -> response.bodyAsText().takeIf { it.isNotEmpty() }?.let { json ->
+                runCatching { McpJson.decodeFromString<JSONRPCMessage>(json) }
+                    .onSuccess { _onMessage(it) }
+                    .onFailure {
+                        _onError(it)
+                        throw it
+                    }
+            }
+
+            ContentType.Text.EventStream -> {
+                val result = handleInlineSse(response, replayMessageId = null, onResumptionToken = null)
+                if (!result.receivedResponse) {
+                    throw StreamableHttpError(
+                        null,
+                        "Response stream for request ${message.id} closed before the response arrived",
+                    )
+                }
+            }
+
+            else -> {
+                val ct = response.contentType()?.toString() ?: "<none>"
+                val error = StreamableHttpError(-1, "Unexpected content type: $ct")
+                _onError(error)
+                throw error
+            }
+        }
+    }
+
+    /**
+     * Decodes a JSON-RPC error answering the request with [id]; an error without an ID is accepted when
+     * it carries a code only request-scoped servers use.
+     */
+    private fun String.decodeErrorFor(id: RequestId): JSONRPCError? {
+        val error = runCatching { McpJson.decodeFromString<JSONRPCMessage>(this) }.getOrNull() as? JSONRPCError
+            ?: return null
+        return when (error.id) {
+            id -> error
+            null -> error.takeIf { it.error.code in requestScopedErrorCodes }?.copy(id = id)
+            else -> null
+        }
+    }
+
+    /**
+     * Records the `x-mcp-header` annotations of [tool] so that later `tools/call` requests mirror the
+     * annotated arguments into `Mcp-Param-*` headers.
+     *
+     * @return `false` if the annotations are invalid; the tool must then be excluded from `tools/list`
+     */
+    internal fun registerToolParamHeaders(tool: Tool): Boolean {
+        val headers = try {
+            toolParamHeaders(tool)
+        } catch (e: IllegalArgumentException) {
+            logger.warn { "Rejecting tool '${tool.name}': ${e.message}" }
+            toolParamHeaders.update { it.remove(tool.name) }
+            return false
+        }
+        toolParamHeaders.update { current ->
+            if (headers.isEmpty()) current.remove(tool.name) else current.put(tool.name, headers)
+        }
+        return true
+    }
+
+    private fun applyParamHeaders(builder: HttpRequestBuilder, message: JSONRPCRequest) {
+        if (message.method != TOOLS_CALL_METHOD) return
+        val params = message.params as? JsonObject ?: return
+        val toolName = params.stringValue("name") ?: return
+        val headers = toolParamHeaders.value[toolName] ?: return
+        for ((name, value) in paramHeaderValues(headers, params["arguments"] as? JsonObject)) {
+            builder.headers.append(name, value)
         }
     }
 
@@ -417,17 +563,6 @@ public class StreamableHttpClientTransport(
 
     private fun JsonObject.stringValue(key: String): String? =
         (get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content
-
-    @OptIn(ExperimentalEncodingApi::class)
-    private fun String.encodeMcpHeaderValue(): String {
-        val containsUnsafeCharacters = any { it != '\t' && it.code !in 0x20..0x7e }
-        val hasEdgeWhitespace = firstOrNull()?.isWhitespace() == true || lastOrNull()?.isWhitespace() == true
-        val matchesBase64Sentinel = startsWith(MCP_BASE64_PREFIX) && endsWith(MCP_BASE64_SUFFIX)
-
-        if (!containsUnsafeCharacters && !hasEdgeWhitespace && !matchesBase64Sentinel) return this
-
-        return "$MCP_BASE64_PREFIX${Base64.Default.encode(encodeToByteArray())}$MCP_BASE64_SUFFIX"
-    }
 
     private suspend fun collectSse(
         session: ClientSSESession,

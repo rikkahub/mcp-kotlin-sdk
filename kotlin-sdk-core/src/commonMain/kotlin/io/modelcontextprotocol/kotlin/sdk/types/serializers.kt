@@ -260,6 +260,7 @@ private val clientRequestDeserializers: Map<String, DeserializationStrategy<Clie
         Method.Defined.TasksResult.value to GetTaskPayloadRequest.serializer(),
         Method.Defined.TasksList.value to ListTasksRequest.serializer(),
         Method.Defined.TasksCancel.value to CancelTaskRequest.serializer(),
+        Method.Defined.SubscriptionsListen.value to SubscriptionsListenRequest.serializer(),
     )
 }
 
@@ -328,6 +329,7 @@ private val clientNotificationDeserializers: Map<String, DeserializationStrategy
 private fun selectClientNotificationDeserializer(element: JsonElement): DeserializationStrategy<ClientNotification>? =
     element.getMethodOrNull()?.let(clientNotificationDeserializers::get)
 
+@OptIn(ExperimentalMcpApi::class)
 private val serverNotificationDeserializers: Map<String, DeserializationStrategy<ServerNotification>> by lazy {
     mapOf(
         Method.Defined.NotificationsCancelled.value to CancelledNotification.serializer(),
@@ -339,6 +341,8 @@ private val serverNotificationDeserializers: Map<String, DeserializationStrategy
         Method.Defined.NotificationsPromptsListChanged.value to PromptListChangedNotification.serializer(),
         Method.Defined.NotificationsElicitationComplete.value to ElicitationCompleteNotification.serializer(),
         Method.Defined.NotificationsTasksStatus.value to TaskStatusNotification.serializer(),
+        Method.Defined.NotificationsSubscriptionsAcknowledged.value to
+            SubscriptionsAcknowledgedNotification.serializer(),
     )
 }
 
@@ -387,15 +391,37 @@ internal object ServerNotificationPolymorphicSerializer :
 // Result Serializers
 // ============================================================================
 
+/** Keys an empty result may carry: metadata and the request-scoped `resultType` discriminator. */
+private val emptyResultKeys = setOf("_meta", RESULT_TYPE_KEY)
+
 /**
  * Selects the appropriate deserializer for empty results.
- * Returns EmptyResult serializer if the JSON object is empty or contains only metadata.
+ * Returns EmptyResult serializer if the JSON object is empty or contains only metadata and `resultType`.
  */
 private fun selectEmptyResult(element: JsonElement): DeserializationStrategy<EmptyResult>? {
     val jsonObject = element.jsonObject
     return when {
-        jsonObject.isEmpty() || (jsonObject.size == 1 && "_meta" in jsonObject) -> EmptyResult.serializer()
+        emptyResultKeys.containsAll(jsonObject.keys) -> EmptyResult.serializer()
         else -> null
+    }
+}
+
+/**
+ * Selects a deserializer from the request-scoped `resultType` discriminator.
+ *
+ * Returns `null` for complete results, including results from handshake-based servers that omit the
+ * field, so that they are matched by shape instead.
+ *
+ * @throws SerializationException if `resultType` is present but not a recognized value
+ */
+@OptIn(ExperimentalMcpApi::class)
+private fun selectResultTypeDeserializer(element: JsonElement): DeserializationStrategy<InputRequiredResult>? {
+    val resultType = element.jsonObject[RESULT_TYPE_KEY] ?: return null
+    val value = (resultType as? JsonPrimitive)?.takeIf { it.isString }?.content
+    return when (value) {
+        COMPLETE_RESULT_TYPE -> null
+        INPUT_REQUIRED_RESULT_TYPE -> InputRequiredResult.serializer()
+        else -> throw SerializationException("Unrecognized resultType: $resultType")
     }
 }
 
@@ -454,7 +480,8 @@ private fun selectServerResultDeserializer(element: JsonElement): Deserializatio
 internal object RequestResultPolymorphicSerializer :
     JsonContentPolymorphicSerializer<RequestResult>(RequestResult::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<RequestResult> =
-        selectClientResultDeserializer(element)
+        selectResultTypeDeserializer(element)
+            ?: selectClientResultDeserializer(element)
             ?: selectServerResultDeserializer(element)
             ?: selectEmptyResult(element)
             ?: throw SerializationException("Cannot determine RequestResult type from JSON: ${element.jsonObject.keys}")
@@ -479,7 +506,8 @@ internal object ClientResultPolymorphicSerializer :
 internal object ServerResultPolymorphicSerializer :
     JsonContentPolymorphicSerializer<ServerResult>(ServerResult::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<ServerResult> =
-        selectServerResultDeserializer(element)
+        selectResultTypeDeserializer(element)
+            ?: selectServerResultDeserializer(element)
             ?: selectEmptyResult(element)
             ?: throw SerializationException("Cannot determine RequestResult type from JSON: ${element.jsonObject.keys}")
 }

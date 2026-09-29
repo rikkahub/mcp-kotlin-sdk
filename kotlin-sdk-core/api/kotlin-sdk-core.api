@@ -69,15 +69,20 @@ public abstract class io/modelcontextprotocol/kotlin/sdk/shared/Protocol {
 	public final fun getRequestHandlers ()Ljava/util/Map;
 	public final fun getResponseHandlers ()Ljava/util/Map;
 	public final fun getTransport ()Lio/modelcontextprotocol/kotlin/sdk/shared/Transport;
+	protected final fun handleRequestLocally (Lio/modelcontextprotocol/kotlin/sdk/types/JSONRPCRequest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun notification (Lio/modelcontextprotocol/kotlin/sdk/types/Notification;Lio/modelcontextprotocol/kotlin/sdk/types/RequestId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun notification$default (Lio/modelcontextprotocol/kotlin/sdk/shared/Protocol;Lio/modelcontextprotocol/kotlin/sdk/types/Notification;Lio/modelcontextprotocol/kotlin/sdk/types/RequestId;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public fun onClose ()V
 	public fun onError (Ljava/lang/Throwable;)V
 	protected fun onInitializedNotification ()V
+	protected fun onPeerCancelledRequest (Lio/modelcontextprotocol/kotlin/sdk/types/RequestId;)Z
+	protected fun prepareOutgoingRequest (Lio/modelcontextprotocol/kotlin/sdk/types/JSONRPCRequest;)Lio/modelcontextprotocol/kotlin/sdk/types/JSONRPCRequest;
 	public final fun removeNotificationHandler (Lio/modelcontextprotocol/kotlin/sdk/types/Method;)V
 	public final fun removeRequestHandler (Lio/modelcontextprotocol/kotlin/sdk/types/Method;)V
 	public final fun request (Lio/modelcontextprotocol/kotlin/sdk/types/Request;Lio/modelcontextprotocol/kotlin/sdk/shared/RequestOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun request$default (Lio/modelcontextprotocol/kotlin/sdk/shared/Protocol;Lio/modelcontextprotocol/kotlin/sdk/types/Request;Lio/modelcontextprotocol/kotlin/sdk/shared/RequestOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	protected final fun sendRequestMessage (Lio/modelcontextprotocol/kotlin/sdk/types/JSONRPCRequest;Lio/modelcontextprotocol/kotlin/sdk/shared/RequestOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun sendRequestMessage$default (Lio/modelcontextprotocol/kotlin/sdk/shared/Protocol;Lio/modelcontextprotocol/kotlin/sdk/types/JSONRPCRequest;Lio/modelcontextprotocol/kotlin/sdk/shared/RequestOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun setFallbackNotificationHandler (Lkotlin/jvm/functions/Function2;)V
 	public final fun setFallbackRequestHandler (Lkotlin/jvm/functions/Function3;)V
 	public final fun setNotificationHandler (Lio/modelcontextprotocol/kotlin/sdk/types/Method;Lkotlin/jvm/functions/Function1;)V
@@ -938,9 +943,11 @@ public final class io/modelcontextprotocol/kotlin/sdk/types/ClientResult$Compani
 
 public final class io/modelcontextprotocol/kotlin/sdk/types/CommonKt {
 	public static final field DEFAULT_NEGOTIATED_PROTOCOL_VERSION Ljava/lang/String;
+	public static final field LATEST_MODERN_PROTOCOL_VERSION Ljava/lang/String;
 	public static final field LATEST_PROTOCOL_VERSION Ljava/lang/String;
 	public static final fun ProgressToken (J)Lio/modelcontextprotocol/kotlin/sdk/types/RequestId;
 	public static final fun ProgressToken (Ljava/lang/String;)Lio/modelcontextprotocol/kotlin/sdk/types/RequestId;
+	public static final fun getMODERN_PROTOCOL_VERSIONS ()Ljava/util/List;
 	public static final fun getSUPPORTED_PROTOCOL_VERSIONS ()Ljava/util/List;
 }
 
@@ -2518,6 +2525,40 @@ public final class io/modelcontextprotocol/kotlin/sdk/types/InitializedNotificat
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class io/modelcontextprotocol/kotlin/sdk/types/InputRequiredResult : io/modelcontextprotocol/kotlin/sdk/types/ServerResult {
+	public static final field Companion Lio/modelcontextprotocol/kotlin/sdk/types/InputRequiredResult$Companion;
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Map;Ljava/lang/String;Lkotlinx/serialization/json/JsonObject;)V
+	public synthetic fun <init> (Ljava/util/Map;Ljava/lang/String;Lkotlinx/serialization/json/JsonObject;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/Map;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lkotlinx/serialization/json/JsonObject;
+	public final fun copy (Ljava/util/Map;Ljava/lang/String;Lkotlinx/serialization/json/JsonObject;)Lio/modelcontextprotocol/kotlin/sdk/types/InputRequiredResult;
+	public static synthetic fun copy$default (Lio/modelcontextprotocol/kotlin/sdk/types/InputRequiredResult;Ljava/util/Map;Ljava/lang/String;Lkotlinx/serialization/json/JsonObject;ILjava/lang/Object;)Lio/modelcontextprotocol/kotlin/sdk/types/InputRequiredResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getInputRequests ()Ljava/util/Map;
+	public fun getMeta ()Lkotlinx/serialization/json/JsonObject;
+	public final fun getRequestState ()Ljava/lang/String;
+	public final fun getResultType ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class io/modelcontextprotocol/kotlin/sdk/types/InputRequiredResult$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/modelcontextprotocol/kotlin/sdk/types/InputRequiredResult$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/modelcontextprotocol/kotlin/sdk/types/InputRequiredResult;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/modelcontextprotocol/kotlin/sdk/types/InputRequiredResult;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/modelcontextprotocol/kotlin/sdk/types/InputRequiredResult$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class io/modelcontextprotocol/kotlin/sdk/types/IntegerSchema : io/modelcontextprotocol/kotlin/sdk/types/NumberSchemaDefinition {
 	public static final field Companion Lio/modelcontextprotocol/kotlin/sdk/types/IntegerSchema$Companion;
 	public fun <init> ()V
@@ -3345,6 +3386,7 @@ public final class io/modelcontextprotocol/kotlin/sdk/types/Method$Defined : jav
 	public static final field NotificationsResourcesListChanged Lio/modelcontextprotocol/kotlin/sdk/types/Method$Defined;
 	public static final field NotificationsResourcesUpdated Lio/modelcontextprotocol/kotlin/sdk/types/Method$Defined;
 	public static final field NotificationsRootsListChanged Lio/modelcontextprotocol/kotlin/sdk/types/Method$Defined;
+	public static final field NotificationsSubscriptionsAcknowledged Lio/modelcontextprotocol/kotlin/sdk/types/Method$Defined;
 	public static final field NotificationsTasksStatus Lio/modelcontextprotocol/kotlin/sdk/types/Method$Defined;
 	public static final field NotificationsToolsListChanged Lio/modelcontextprotocol/kotlin/sdk/types/Method$Defined;
 	public static final field Ping Lio/modelcontextprotocol/kotlin/sdk/types/Method$Defined;
@@ -3358,6 +3400,7 @@ public final class io/modelcontextprotocol/kotlin/sdk/types/Method$Defined : jav
 	public static final field RootsList Lio/modelcontextprotocol/kotlin/sdk/types/Method$Defined;
 	public static final field SamplingCreateMessage Lio/modelcontextprotocol/kotlin/sdk/types/Method$Defined;
 	public static final field ServerDiscover Lio/modelcontextprotocol/kotlin/sdk/types/Method$Defined;
+	public static final field SubscriptionsListen Lio/modelcontextprotocol/kotlin/sdk/types/Method$Defined;
 	public static final field TasksCancel Lio/modelcontextprotocol/kotlin/sdk/types/Method$Defined;
 	public static final field TasksGet Lio/modelcontextprotocol/kotlin/sdk/types/Method$Defined;
 	public static final field TasksList Lio/modelcontextprotocol/kotlin/sdk/types/Method$Defined;
@@ -3872,11 +3915,13 @@ public final class io/modelcontextprotocol/kotlin/sdk/types/RPCError$Companion {
 
 public final class io/modelcontextprotocol/kotlin/sdk/types/RPCError$ErrorCode {
 	public static final field CONNECTION_CLOSED I
+	public static final field HEADER_MISMATCH I
 	public static final field INSTANCE Lio/modelcontextprotocol/kotlin/sdk/types/RPCError$ErrorCode;
 	public static final field INTERNAL_ERROR I
 	public static final field INVALID_PARAMS I
 	public static final field INVALID_REQUEST I
 	public static final field METHOD_NOT_FOUND I
+	public static final field MISSING_REQUIRED_CLIENT_CAPABILITY I
 	public static final field PARSE_ERROR I
 	public static final field REQUEST_TIMEOUT I
 	public static final field RESOURCE_NOT_FOUND I
@@ -5083,6 +5128,165 @@ public final synthetic class io/modelcontextprotocol/kotlin/sdk/types/SubscribeR
 }
 
 public final class io/modelcontextprotocol/kotlin/sdk/types/SubscribeRequestParams$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter {
+	public static final field Companion Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter$Companion;
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/Boolean;
+	public final fun component2 ()Ljava/lang/Boolean;
+	public final fun component3 ()Ljava/lang/Boolean;
+	public final fun component4 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/util/List;)Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter;
+	public static synthetic fun copy$default (Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/util/List;ILjava/lang/Object;)Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPromptsListChanged ()Ljava/lang/Boolean;
+	public final fun getResourceSubscriptions ()Ljava/util/List;
+	public final fun getResourcesListChanged ()Ljava/lang/Boolean;
+	public final fun getToolsListChanged ()Ljava/lang/Boolean;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class io/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotification : io/modelcontextprotocol/kotlin/sdk/types/ServerNotification {
+	public static final field Companion Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotification$Companion;
+	public fun <init> (Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotificationParams;)V
+	public final fun component1 ()Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotificationParams;
+	public final fun copy (Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotificationParams;)Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotification;
+	public static synthetic fun copy$default (Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotification;Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotificationParams;ILjava/lang/Object;)Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotification;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getMethod ()Lio/modelcontextprotocol/kotlin/sdk/types/Method;
+	public synthetic fun getParams ()Lio/modelcontextprotocol/kotlin/sdk/types/NotificationParams;
+	public fun getParams ()Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotificationParams;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class io/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotification$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotification$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotification;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotification;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotification$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotificationParams : io/modelcontextprotocol/kotlin/sdk/types/NotificationParams {
+	public static final field Companion Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotificationParams$Companion;
+	public fun <init> (Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter;Lkotlinx/serialization/json/JsonObject;)V
+	public synthetic fun <init> (Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter;Lkotlinx/serialization/json/JsonObject;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter;
+	public final fun component2 ()Lkotlinx/serialization/json/JsonObject;
+	public final fun copy (Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter;Lkotlinx/serialization/json/JsonObject;)Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotificationParams;
+	public static synthetic fun copy$default (Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotificationParams;Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter;Lkotlinx/serialization/json/JsonObject;ILjava/lang/Object;)Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotificationParams;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getMeta ()Lkotlinx/serialization/json/JsonObject;
+	public final fun getNotifications ()Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class io/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotificationParams$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotificationParams$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotificationParams;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotificationParams;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/modelcontextprotocol/kotlin/sdk/types/SubscriptionsAcknowledgedNotificationParams$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/modelcontextprotocol/kotlin/sdk/types/SubscriptionsKt {
+	public static final field SUBSCRIPTION_ID_META_KEY Ljava/lang/String;
+	public static final fun getSubscriptionId (Lio/modelcontextprotocol/kotlin/sdk/types/Notification;)Lio/modelcontextprotocol/kotlin/sdk/types/RequestId;
+}
+
+public final class io/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequest : io/modelcontextprotocol/kotlin/sdk/types/ClientRequest {
+	public static final field Companion Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequest$Companion;
+	public fun <init> (Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequestParams;)V
+	public final fun component1 ()Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequestParams;
+	public final fun copy (Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequestParams;)Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequest;
+	public static synthetic fun copy$default (Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequest;Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequestParams;ILjava/lang/Object;)Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getMethod ()Lio/modelcontextprotocol/kotlin/sdk/types/Method;
+	public final fun getNotifications ()Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter;
+	public synthetic fun getParams ()Lio/modelcontextprotocol/kotlin/sdk/types/RequestParams;
+	public fun getParams ()Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequestParams;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class io/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequest$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequest$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequestParams : io/modelcontextprotocol/kotlin/sdk/types/RequestParams {
+	public static final field Companion Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequestParams$Companion;
+	public synthetic fun <init> (Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter;Lkotlinx/serialization/json/JsonObject;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter;Lkotlinx/serialization/json/JsonObject;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter;
+	public final fun component2-VI-3G7E ()Lkotlinx/serialization/json/JsonObject;
+	public final fun copy-D-90kyg (Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter;Lkotlinx/serialization/json/JsonObject;)Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequestParams;
+	public static synthetic fun copy-D-90kyg$default (Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequestParams;Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter;Lkotlinx/serialization/json/JsonObject;ILjava/lang/Object;)Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequestParams;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getMeta-VI-3G7E ()Lkotlinx/serialization/json/JsonObject;
+	public final fun getNotifications ()Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionFilter;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class io/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequestParams$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequestParams$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequestParams;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequestParams;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/modelcontextprotocol/kotlin/sdk/types/SubscriptionsListenRequestParams$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
