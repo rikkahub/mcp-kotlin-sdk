@@ -488,18 +488,18 @@ public final class io/modelcontextprotocol/kotlin/sdk/types/CallToolRequestParam
 
 public final class io/modelcontextprotocol/kotlin/sdk/types/CallToolResult : io/modelcontextprotocol/kotlin/sdk/types/ServerResult {
 	public static final field Companion Lio/modelcontextprotocol/kotlin/sdk/types/CallToolResult$Companion;
-	public fun <init> (Ljava/util/List;Ljava/lang/Boolean;Lkotlinx/serialization/json/JsonObject;Lkotlinx/serialization/json/JsonObject;)V
-	public synthetic fun <init> (Ljava/util/List;Ljava/lang/Boolean;Lkotlinx/serialization/json/JsonObject;Lkotlinx/serialization/json/JsonObject;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/util/List;Ljava/lang/Boolean;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonObject;)V
+	public synthetic fun <init> (Ljava/util/List;Ljava/lang/Boolean;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonObject;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/util/List;
 	public final fun component2 ()Ljava/lang/Boolean;
-	public final fun component3 ()Lkotlinx/serialization/json/JsonObject;
+	public final fun component3 ()Lkotlinx/serialization/json/JsonElement;
 	public final fun component4 ()Lkotlinx/serialization/json/JsonObject;
-	public final fun copy (Ljava/util/List;Ljava/lang/Boolean;Lkotlinx/serialization/json/JsonObject;Lkotlinx/serialization/json/JsonObject;)Lio/modelcontextprotocol/kotlin/sdk/types/CallToolResult;
-	public static synthetic fun copy$default (Lio/modelcontextprotocol/kotlin/sdk/types/CallToolResult;Ljava/util/List;Ljava/lang/Boolean;Lkotlinx/serialization/json/JsonObject;Lkotlinx/serialization/json/JsonObject;ILjava/lang/Object;)Lio/modelcontextprotocol/kotlin/sdk/types/CallToolResult;
+	public final fun copy (Ljava/util/List;Ljava/lang/Boolean;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonObject;)Lio/modelcontextprotocol/kotlin/sdk/types/CallToolResult;
+	public static synthetic fun copy$default (Lio/modelcontextprotocol/kotlin/sdk/types/CallToolResult;Ljava/util/List;Ljava/lang/Boolean;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonObject;ILjava/lang/Object;)Lio/modelcontextprotocol/kotlin/sdk/types/CallToolResult;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getContent ()Ljava/util/List;
 	public fun getMeta ()Lkotlinx/serialization/json/JsonObject;
-	public final fun getStructuredContent ()Lkotlinx/serialization/json/JsonObject;
+	public final fun getStructuredContent ()Lkotlinx/serialization/json/JsonElement;
 	public fun hashCode ()I
 	public final fun isError ()Ljava/lang/Boolean;
 	public fun toString ()Ljava/lang/String;
@@ -5837,19 +5837,19 @@ public final class io/modelcontextprotocol/kotlin/sdk/types/ToolListChangedNotif
 
 public final class io/modelcontextprotocol/kotlin/sdk/types/ToolResultContent : io/modelcontextprotocol/kotlin/sdk/types/SamplingMessageContent {
 	public static final field Companion Lio/modelcontextprotocol/kotlin/sdk/types/ToolResultContent$Companion;
-	public fun <init> (Ljava/lang/String;Ljava/util/List;Lkotlinx/serialization/json/JsonObject;Ljava/lang/Boolean;Lkotlinx/serialization/json/JsonObject;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Lkotlinx/serialization/json/JsonObject;Ljava/lang/Boolean;Lkotlinx/serialization/json/JsonObject;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Ljava/lang/Boolean;Lkotlinx/serialization/json/JsonObject;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Ljava/lang/Boolean;Lkotlinx/serialization/json/JsonObject;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/util/List;
-	public final fun component3 ()Lkotlinx/serialization/json/JsonObject;
+	public final fun component3 ()Lkotlinx/serialization/json/JsonElement;
 	public final fun component4 ()Ljava/lang/Boolean;
 	public final fun component5 ()Lkotlinx/serialization/json/JsonObject;
-	public final fun copy (Ljava/lang/String;Ljava/util/List;Lkotlinx/serialization/json/JsonObject;Ljava/lang/Boolean;Lkotlinx/serialization/json/JsonObject;)Lio/modelcontextprotocol/kotlin/sdk/types/ToolResultContent;
-	public static synthetic fun copy$default (Lio/modelcontextprotocol/kotlin/sdk/types/ToolResultContent;Ljava/lang/String;Ljava/util/List;Lkotlinx/serialization/json/JsonObject;Ljava/lang/Boolean;Lkotlinx/serialization/json/JsonObject;ILjava/lang/Object;)Lio/modelcontextprotocol/kotlin/sdk/types/ToolResultContent;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Ljava/lang/Boolean;Lkotlinx/serialization/json/JsonObject;)Lio/modelcontextprotocol/kotlin/sdk/types/ToolResultContent;
+	public static synthetic fun copy$default (Lio/modelcontextprotocol/kotlin/sdk/types/ToolResultContent;Ljava/lang/String;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;Ljava/lang/Boolean;Lkotlinx/serialization/json/JsonObject;ILjava/lang/Object;)Lio/modelcontextprotocol/kotlin/sdk/types/ToolResultContent;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getContent ()Ljava/util/List;
 	public fun getMeta ()Lkotlinx/serialization/json/JsonObject;
-	public final fun getStructuredContent ()Lkotlinx/serialization/json/JsonObject;
+	public final fun getStructuredContent ()Lkotlinx/serialization/json/JsonElement;
 	public final fun getToolUseId ()Ljava/lang/String;
 	public fun getType ()Lio/modelcontextprotocol/kotlin/sdk/types/ContentTypes;
 	public fun hashCode ()I
@@ -5875,33 +5875,25 @@ public final class io/modelcontextprotocol/kotlin/sdk/types/ToolResultContent$Co
 public final class io/modelcontextprotocol/kotlin/sdk/types/ToolSchema {
 	public static final field Companion Lio/modelcontextprotocol/kotlin/sdk/types/ToolSchema$Companion;
 	public fun <init> ()V
-	public fun <init> (Ljava/lang/String;Lkotlinx/serialization/json/JsonObject;Ljava/util/List;Lkotlinx/serialization/json/JsonObject;)V
-	public synthetic fun <init> (Ljava/lang/String;Lkotlinx/serialization/json/JsonObject;Ljava/util/List;Lkotlinx/serialization/json/JsonObject;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Lkotlinx/serialization/json/JsonObject;Ljava/util/List;Lkotlinx/serialization/json/JsonObject;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonObject;)V
+	public synthetic fun <init> (Ljava/lang/String;Lkotlinx/serialization/json/JsonObject;Ljava/util/List;Lkotlinx/serialization/json/JsonObject;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonObject;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Lkotlinx/serialization/json/JsonObject;
 	public final fun component3 ()Ljava/util/List;
 	public final fun component4 ()Lkotlinx/serialization/json/JsonObject;
-	public final fun copy (Ljava/lang/String;Lkotlinx/serialization/json/JsonObject;Ljava/util/List;Lkotlinx/serialization/json/JsonObject;)Lio/modelcontextprotocol/kotlin/sdk/types/ToolSchema;
-	public static synthetic fun copy$default (Lio/modelcontextprotocol/kotlin/sdk/types/ToolSchema;Ljava/lang/String;Lkotlinx/serialization/json/JsonObject;Ljava/util/List;Lkotlinx/serialization/json/JsonObject;ILjava/lang/Object;)Lio/modelcontextprotocol/kotlin/sdk/types/ToolSchema;
+	public final fun component5 ()Lkotlinx/serialization/json/JsonElement;
+	public final fun component6 ()Lkotlinx/serialization/json/JsonObject;
+	public final fun copy (Ljava/lang/String;Lkotlinx/serialization/json/JsonObject;Ljava/util/List;Lkotlinx/serialization/json/JsonObject;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonObject;)Lio/modelcontextprotocol/kotlin/sdk/types/ToolSchema;
+	public static synthetic fun copy$default (Lio/modelcontextprotocol/kotlin/sdk/types/ToolSchema;Ljava/lang/String;Lkotlinx/serialization/json/JsonObject;Ljava/util/List;Lkotlinx/serialization/json/JsonObject;Lkotlinx/serialization/json/JsonElement;Lkotlinx/serialization/json/JsonObject;ILjava/lang/Object;)Lio/modelcontextprotocol/kotlin/sdk/types/ToolSchema;
 	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAdditionalKeywords ()Lkotlinx/serialization/json/JsonObject;
 	public final fun getDefs ()Lkotlinx/serialization/json/JsonObject;
 	public final fun getProperties ()Lkotlinx/serialization/json/JsonObject;
 	public final fun getRequired ()Ljava/util/List;
 	public final fun getSchema ()Ljava/lang/String;
-	public final fun getType ()Ljava/lang/String;
+	public final fun getType ()Lkotlinx/serialization/json/JsonElement;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
-}
-
-public final synthetic class io/modelcontextprotocol/kotlin/sdk/types/ToolSchema$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
-	public static final field INSTANCE Lio/modelcontextprotocol/kotlin/sdk/types/ToolSchema$$serializer;
-	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
-	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/modelcontextprotocol/kotlin/sdk/types/ToolSchema;
-	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
-	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
-	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/modelcontextprotocol/kotlin/sdk/types/ToolSchema;)V
-	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
-	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
 }
 
 public final class io/modelcontextprotocol/kotlin/sdk/types/ToolSchema$Companion {

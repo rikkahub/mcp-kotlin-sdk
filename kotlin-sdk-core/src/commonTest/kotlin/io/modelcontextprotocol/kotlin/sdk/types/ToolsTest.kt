@@ -1,17 +1,27 @@
 package io.modelcontextprotocol.kotlin.sdk.types
 
+import io.kotest.assertions.json.shouldEqualJson
 import io.modelcontextprotocol.kotlin.test.utils.verifyDeserialization
 import io.modelcontextprotocol.kotlin.test.utils.verifySerialization
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 class ToolsTest {
 
@@ -262,6 +272,183 @@ class ToolsTest {
     }
 
     @Test
+    fun `should deserialize output schema with union root type`() {
+        val json = """
+            {
+              "name": "add_issue_comment",
+              "inputSchema": {
+                "type": "object"
+              },
+              "outputSchema": {
+                "type": ["object", "null"],
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+        """.trimIndent()
+
+        val tool = verifyDeserialization<Tool>(McpJson, json)
+
+        val outputSchema = tool.outputSchema
+        assertNotNull(outputSchema)
+        assertEquals(
+            buildJsonArray {
+                add("object")
+                add("null")
+            },
+            outputSchema.type,
+        )
+        assertEquals(2, outputSchema.additionalKeywords?.get("oneOf")?.jsonArray?.size)
+    }
+
+    @Test
+    fun `should deserialize output schema with array root type`() {
+        val json = """
+            {
+              "name": "list_commits",
+              "inputSchema": {
+                "type": "object"
+              },
+              "outputSchema": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            }
+        """.trimIndent()
+
+        val tool = verifyDeserialization<Tool>(McpJson, json)
+
+        val outputSchema = tool.outputSchema
+        assertNotNull(outputSchema)
+        assertEquals(JsonPrimitive("array"), outputSchema.type)
+        assertEquals(
+            "object",
+            outputSchema.additionalKeywords?.get("items")?.jsonObject?.get("type")?.jsonPrimitive?.content,
+        )
+    }
+
+    @Test
+    fun `should deserialize output schema without root type`() {
+        val json = """
+            {
+              "name": "get_file_contents",
+              "inputSchema": {
+                "type": "object"
+              },
+              "outputSchema": {
+                "oneOf": [
+                  {
+                    "type": "object"
+                  },
+                  {
+                    "type": "array"
+                  }
+                ]
+              }
+            }
+        """.trimIndent()
+
+        val tool = verifyDeserialization<Tool>(McpJson, json)
+
+        val outputSchema = tool.outputSchema
+        assertNotNull(outputSchema)
+        assertNull(outputSchema.type)
+        assertEquals(2, outputSchema.additionalKeywords?.get("oneOf")?.jsonArray?.size)
+    }
+
+    @Test
+    fun `should serialize ToolSchema with additional keywords`() {
+        val tool = Tool(
+            name = "strict-tool",
+            inputSchema = ToolSchema(
+                properties = buildJsonObject {
+                    put("name", buildJsonObject { put("type", "string") })
+                },
+                additionalKeywords = buildJsonObject { put("additionalProperties", false) },
+            ),
+        )
+
+        verifySerialization(
+            tool,
+            McpJson,
+            """
+            {
+              "name": "strict-tool",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+            """.trimIndent(),
+        )
+    }
+
+    @Test
+    fun `should prefer typed ToolSchema properties over additional keywords`() {
+        val schema = ToolSchema(
+            required = listOf("name"),
+            additionalKeywords = buildJsonObject {
+                put("type", "array")
+                put("required", true)
+                put("title", "Person")
+            },
+        )
+
+        McpJson.encodeToString(schema) shouldEqualJson """
+            {
+              "type": "object",
+              "required": ["name"],
+              "title": "Person"
+            }
+        """.trimIndent()
+    }
+
+    @Test
+    fun `should keep ToolSchema keywords with unexpected shapes`() {
+        val json = """
+            {
+              "name": "sloppy-tool",
+              "inputSchema": {
+                "type": "object",
+                "properties": null,
+                "required": true
+              }
+            }
+        """.trimIndent()
+
+        val tool = McpJson.decodeFromString<Tool>(json)
+
+        assertNull(tool.inputSchema.properties)
+        assertNull(tool.inputSchema.required)
+        assertEquals(buildJsonObject { put("required", true) }, tool.inputSchema.additionalKeywords)
+    }
+
+    @Test
+    fun `should fail to deserialize non-object ToolSchema`() {
+        assertFailsWith<SerializationException> {
+            McpJson.decodeFromString<Tool>("""{"name": "bad-tool", "inputSchema": true}""")
+        }
+    }
+
+    @Test
     fun `should serialize CallToolRequest with arguments`() {
         val request = CallToolRequest(
             CallToolRequestParams(
@@ -436,10 +623,47 @@ class ToolsTest {
         assertEquals(true, result.isError)
         val text = assertIs<TextContent>(result.content.first())
         assertEquals("Unable to reach server.", text.text)
-        val structured = result.structuredContent
-        assertNotNull(structured)
+        val structured = assertIs<JsonObject>(result.structuredContent)
         assertEquals("NETWORK", structured["errorCode"]?.jsonPrimitive?.content)
         assertEquals("req-9", result.meta?.get("requestId")?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `should deserialize CallToolResult with non-object structured content`() {
+        val json = """
+            {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "[{\"name\":\"main\"}]"
+                }
+              ],
+              "structuredContent": [
+                {
+                  "name": "main"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val result = verifyDeserialization<CallToolResult>(McpJson, json)
+
+        val structured = assertIs<JsonArray>(result.structuredContent)
+        assertEquals("main", structured.single().jsonObject["name"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `should deserialize CallToolResult with null structured content`() {
+        val json = """
+            {
+              "content": [],
+              "structuredContent": null
+            }
+        """.trimIndent()
+
+        val result = McpJson.decodeFromString<CallToolResult>(json)
+
+        assertNull(result.structuredContent)
     }
 
     @Test
@@ -550,7 +774,7 @@ class ToolsTest {
         val tool = tools.first()
         assertEquals("search", tool.name)
         assertEquals("Search the workspace", tool.description)
-        assertEquals("object", tool.inputSchema.type)
+        assertEquals(JsonPrimitive("object"), tool.inputSchema.type)
         assertEquals(3, result.meta?.get("page")?.jsonPrimitive?.int)
     }
 

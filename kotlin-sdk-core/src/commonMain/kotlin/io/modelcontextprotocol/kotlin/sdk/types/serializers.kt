@@ -16,12 +16,15 @@ import kotlinx.serialization.json.JsonContentPolymorphicSerializer
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
+import kotlinx.serialization.json.put
 
 private val logger = KotlinLogging.logger {}
 
@@ -213,6 +216,75 @@ internal object SamplingContentSerializer : KSerializer<List<SamplingMessageCont
                 "content must be a JSON object or array of objects, got $element",
             )
         }
+}
+
+// ============================================================================
+// Tool Schema Serializer
+// ============================================================================
+
+/**
+ * Custom serializer for [ToolSchema] that keeps every root-level JSON Schema keyword.
+ *
+ * - **Read:** the keywords modelled by [ToolSchema] become typed properties; all others
+ *   land in [ToolSchema.additionalKeywords]. A modelled keyword with an unexpected shape
+ *   is left among the additional keywords instead of failing the whole schema.
+ * - **Write:** typed properties first, then the additional keywords. A typed property
+ *   wins over an additional keyword with the same name.
+ */
+internal object ToolSchemaSerializer : KSerializer<ToolSchema> {
+
+    private const val SCHEMA = "\$schema"
+    private const val PROPERTIES = "properties"
+    private const val REQUIRED = "required"
+    private const val DEFS = "\$defs"
+    private const val TYPE = "type"
+
+    override val descriptor: SerialDescriptor = JsonObject.serializer().descriptor
+
+    override fun serialize(encoder: Encoder, value: ToolSchema) {
+        val jsonEncoder = encoder as? JsonEncoder
+            ?: throw SerializationException("ToolSchemaSerializer requires a Json encoder")
+        val known = buildJsonObject {
+            value.schema?.let { put(SCHEMA, it) }
+            value.properties?.let { put(PROPERTIES, it) }
+            value.required?.let { required -> put(REQUIRED, JsonArray(required.map(::JsonPrimitive))) }
+            value.defs?.let { put(DEFS, it) }
+            value.type?.let { put(TYPE, it) }
+        }
+        val additional = value.additionalKeywords.orEmpty().filterKeys { it !in known }
+        jsonEncoder.encodeJsonElement(JsonObject(known + additional))
+    }
+
+    override fun deserialize(decoder: Decoder): ToolSchema {
+        val jsonDecoder = decoder as? JsonDecoder
+            ?: throw SerializationException("ToolSchemaSerializer requires a Json decoder")
+        val element = jsonDecoder.decodeJsonElement()
+        val remaining = (element as? JsonObject)?.toMutableMap()
+            ?: throw SerializationException("Tool schema must be a JSON object, got $element")
+
+        fun <T : Any> take(key: String, convert: (JsonElement) -> T?): T? {
+            val keyword = remaining[key] ?: return null
+            val value = if (keyword is JsonNull) null else convert(keyword)
+            if (value != null || keyword is JsonNull) remaining.remove(key)
+            return value
+        }
+
+        return ToolSchema(
+            schema = take(SCHEMA) { it.stringOrNull() },
+            properties = take(PROPERTIES) { it as? JsonObject },
+            required = take(REQUIRED) { it.stringListOrNull() },
+            defs = take(DEFS) { it as? JsonObject },
+            type = take(TYPE) { it },
+            additionalKeywords = JsonObject(remaining).takeIf { it.isNotEmpty() },
+        )
+    }
+
+    private fun JsonElement.stringOrNull(): String? = (this as? JsonPrimitive)?.takeIf { it.isString }?.content
+
+    private fun JsonElement.stringListOrNull(): List<String>? {
+        if (this !is JsonArray) return null
+        return mapNotNull { it.stringOrNull() }.takeIf { it.size == size }
+    }
 }
 
 // ============================================================================

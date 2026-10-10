@@ -6,7 +6,9 @@ import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * Creates a [CallToolResult] with single [TextContent] and [meta].
@@ -45,7 +47,8 @@ public fun CallToolResult.Companion.error(content: String, meta: JsonObject? = n
  * It can be thought of like a "hint" to the model.
  * @property outputSchema An optional JSON Schema object defining the structure of the tool's output
  * returned in the [structuredContent][CallToolResult.structuredContent] field of a [CallToolResult].
- * Must be an object type schema if provided.
+ * Can be any valid JSON Schema 2020-12 since protocol version `2026-07-28`;
+ * earlier versions restrict it to an object type schema.
  * Defaults to the JSON Schema 2020-12 dialect when no explicit `$schema` is provided.
  * @property title Optional human-readable display name for this tool.
  * Intended for UI and end-user contexts, optimized to be easily understood
@@ -78,8 +81,13 @@ public data class Tool(
 /**
  * A JSON Schema for tool input or output parameters.
  *
- * This is a simplified schema structure that must be of type "object".
+ * The commonly used root keywords are exposed as typed properties; every other root keyword
+ * is kept in [additionalKeywords], so a schema received from a peer round-trips unchanged.
  * Defaults to the JSON Schema 2020-12 dialect when no explicit [schema] (`$schema`) is provided.
+ *
+ * A [Tool.inputSchema] always has `"object"` as its root [type]. A [Tool.outputSchema] may be any
+ * valid JSON Schema 2020-12 since protocol version `2026-07-28`, so its [type] can also be another
+ * type name, an array of type names (e.g. `["object", "null"]`), or absent.
  *
  * @property schema Optional URI identifying the JSON Schema dialect (e.g.,
  *   `https://json-schema.org/draft/2020-12/schema`). Serialized as `$schema`.
@@ -87,21 +95,20 @@ public data class Tool(
  * @property properties Optional map of property names to their schema definitions.
  * @property required Optional list of property names that are required.
  * @property defs Optional schema definitions available to references in [properties]. Serialized as `$defs`.
+ * @property type The root `type` keyword: a type name, an array of type names, or `null` when absent.
+ *   Defaults to `"object"`.
+ * @property additionalKeywords Any other root-level JSON Schema keywords
+ *   (e.g., `items`, `oneOf`, `additionalProperties`).
  */
-@Serializable
+@Serializable(with = ToolSchemaSerializer::class)
 public data class ToolSchema(
-    @SerialName("\$schema")
     val schema: String? = null,
     val properties: JsonObject? = null,
     val required: List<String>? = null,
-    @SerialName("\$defs")
     val defs: JsonObject? = null,
-) {
-    /** Always `"object"` for tool schemas. */
-    @OptIn(ExperimentalSerializationApi::class)
-    @EncodeDefault
-    val type: String = "object"
-}
+    val type: JsonElement? = JsonPrimitive("object"),
+    val additionalKeywords: JsonObject? = null,
+)
 
 /**
  * Execution-related properties for a tool.
@@ -253,15 +260,16 @@ public data class CallToolRequestParams(
  * @property isError Whether the tool call ended in an error.
  * If not set, this is assumed to be false (the call was successful).
  * When true, the [content] should describe the error that occurred.
- * @property structuredContent An optional JSON object that represents the structured result of the tool call.
+ * @property structuredContent An optional JSON value that represents the structured result of the tool call.
  * Provides machine-readable output in addition to the human-readable [content].
+ * Can be any JSON value since protocol version `2026-07-28`; earlier versions restrict it to a JSON object.
  * @property meta Optional metadata for this response.
  */
 @Serializable
 public data class CallToolResult(
     val content: List<ContentBlock>,
     val isError: Boolean? = null,
-    val structuredContent: JsonObject? = null,
+    val structuredContent: JsonElement? = null,
     @SerialName("_meta")
     override val meta: JsonObject? = null,
 ) : ServerResult

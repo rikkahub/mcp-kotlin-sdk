@@ -8,6 +8,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -408,6 +409,17 @@ class ContentTest {
         )
         val json = McpJson.encodeToString(ToolResultContent.serializer(), original)
         check("\"type\":\"tool_result\"" in json) { "missing discriminator in: $json" }
+        val decoded = McpJson.decodeFromString(ToolResultContent.serializer(), json)
+        decoded shouldBe original
+    }
+
+    @Test
+    fun `ToolResultContent preserves non-object structuredContent`() {
+        val original = ToolResultContent(
+            toolUseId = "call_4",
+            structuredContent = buildJsonArray { add(JsonPrimitive("main")) },
+        )
+        val json = McpJson.encodeToString(ToolResultContent.serializer(), original)
         val decoded = McpJson.decodeFromString(ToolResultContent.serializer(), json)
         decoded shouldBe original
     }

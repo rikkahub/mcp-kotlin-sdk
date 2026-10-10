@@ -6,6 +6,7 @@ import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 
 /**
@@ -226,7 +227,8 @@ public data class ToolUseContent(
  * @property toolUseId The id of the [ToolUseContent] this result corresponds to.
  * @property content The unstructured result, following the same shape as [CallToolResult.content].
  * @property structuredContent Optional structured result; if the tool declared an output schema,
- * this SHOULD conform to it.
+ * this SHOULD conform to it. Can be any JSON value since protocol version `2026-07-28`;
+ * earlier versions restrict it to a JSON object.
  * @property isError Whether the tool call ended in error. Defaults to absent (treated as false).
  * @property meta property/parameter is reserved by MCP to allow clients and servers
  * to attach additional metadata to their interactions.
@@ -235,7 +237,7 @@ public data class ToolUseContent(
 public data class ToolResultContent(
     val toolUseId: String,
     val content: List<ContentBlock> = emptyList(),
-    val structuredContent: JsonObject? = null,
+    val structuredContent: JsonElement? = null,
     val isError: Boolean? = null,
     @SerialName("_meta")
     override val meta: JsonObject? = null,
