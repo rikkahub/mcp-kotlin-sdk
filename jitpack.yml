@@ -1,8 +1,11 @@
-jdk:
-  - openjdk21
+# JitPack's `jdk: openjdk21` shortcut resolves to an SDKMAN version that does not exist
+# on its current build image, so install the JDK explicitly and point Gradle at it.
+before_install:
+  - source "$HOME/.sdkman/bin/sdkman-init.sh" && sdk install java 21.0.2-open
 
 install:
   - >-
+    JAVA_HOME="$HOME/.sdkman/candidates/java/21.0.2-open"
     ./gradlew --no-daemon --stacktrace
     -Pgroup=com.github.rikkahub.mcp-kotlin-sdk
     -Pversion=$VERSION
